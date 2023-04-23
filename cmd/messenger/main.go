@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap"
 	"log"
 	"net/http"
+	os "os"
 )
 
 const (
@@ -17,6 +18,27 @@ const (
 	dbname   = "messenger"
 )
 
+func dbConnection() *sql.DB {
+	os.Setenv("host", "localhost")
+	os.Setenv("port", "5432")
+	os.Setenv("user", "admin")
+	os.Setenv("password", "qwerty123456")
+	os.Setenv("dbname", "messenger")
+
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", os.Getenv("host"), os.Getenv("port"), os.Getenv("user"), os.Getenv("password"), os.Getenv("dbname"))
+
+	db, err := sql.Open("postgres", psqlInfo)
+	if err != nil {
+		log.Fatalf("Failed to open database connection: %v", err)
+	}
+
+	if err = db.Ping(); err != nil {
+		log.Fatalf("failed to ping database: %v", err)
+	}
+
+	return db
+}
+
 func main() {
 	logger, err := zap.NewProduction()
 	if err != nil {
@@ -24,28 +46,31 @@ func main() {
 	}
 	defer logger.Sync()
 
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
-	db, err := sql.Open("postgres", psqlInfo)
-	if err != nil {
-		logger.Fatal("Failed to open database connection: %v", zap.Error(err))
-	}
-	defer db.Close()
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "qwerty123456",
+		DB:       1,
+	})
+	defer redisClient.Close()
 
-	err = db.Ping()
-	if err != nil {
-		logger.Fatal("failed to ping database", zap.Error(err))
-	}
+	dbConnection()
 
 	r := mux.NewRouter()
 	userController := NewUserController(logger)
+
 	r.HandleFunc("/users", userController.CreateUser).Methods("POST")
 	r.HandleFunc("/users/{id}", userController.GetUserByID).Methods("GET")
 	r.HandleFunc("/users/{id}", userController.UpdateUser).Methods("PUT")
 	r.HandleFunc("/users/{id}", userController.DeleteUser).Methods("DELETE")
 
+	r.HandleFunc("/messages", messageController.CreateMessage).Methods("POST")
+	r.HandleFunc("/messages/{id}", messageController.ReceiveMessage).Methods("GET")
+	r.HandleFunc("/messages/{id}", messageController.SendMessage).Methods("PUT")
+	r.HandleFunc("/messages/{id}", messageController.DeleteMessage).Methods("DELETE")
+
 	logger.Info("successfully connected to PostgreSQL database")
 
-	port := ":80"
+	port := ":8080"
 	logger.Info("server listening on port", zap.String("port", port))
 
 	err = http.ListenAndServe(port, r)

@@ -19,8 +19,7 @@ type userRepository struct {
 
 func (r *userRepository) Create(user *entities.User) error {
 	sqlQuery := "INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id"
-	err := r.db.QueryRow(sqlQuery, user.Name, user.Email, user.Password).Scan(&user.Id)
-	if err != nil {
+	if err := r.db.QueryRow(sqlQuery, user.Name, user.Email, user.Password).Scan(&user.Id); err != nil {
 		return fmt.Errorf("failed to create user: %v", err)
 	}
 	return nil
@@ -29,8 +28,7 @@ func (r *userRepository) Create(user *entities.User) error {
 func (r *userRepository) GetByID(id int) (*entities.User, error) {
 	sqlQuery := "SELECT from users (id, name, email, password) WHERE id = $1"
 	user := &entities.User{}
-	err := r.db.QueryRow(sqlQuery, id).Scan(&user.Id, &user.Name, &user.Email, &user.Password)
-	if err != nil {
+	if err := r.db.QueryRow(sqlQuery, id).Scan(&user.Id, &user.Name, &user.Email, &user.Password); err != nil {
 		return nil, fmt.Errorf("failed to get user: %v", err)
 	}
 	return user, nil
@@ -38,8 +36,7 @@ func (r *userRepository) GetByID(id int) (*entities.User, error) {
 
 func (r *userRepository) Update(user *entities.User) error {
 	sqlQuery := "UPDATE users SET name = $1, email = $2, password = $3 WHERE id = $4"
-	err := r.db.QueryRow(sqlQuery, user.Name, user.Email, user.Password, user.Id)
-	if err != nil {
+	if err := r.db.QueryRow(sqlQuery, user.Name, user.Email, user.Password, user.Id); err != nil {
 		return fmt.Errorf("failed to update user: %v", err)
 	}
 	return nil
@@ -47,8 +44,7 @@ func (r *userRepository) Update(user *entities.User) error {
 
 func (r *userRepository) Delete(id int) error {
 	sqlQuery := "DELETE FROM users WHERE id = $1"
-	_, err := r.db.Exec(sqlQuery, id)
-	if err != nil {
+	if _, err := r.db.Exec(sqlQuery, id); err != nil {
 		return fmt.Errorf("failed to delete user: %v", err)
 	}
 	return nil

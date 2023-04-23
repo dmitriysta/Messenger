@@ -2,14 +2,20 @@ package controllers
 
 import (
 	"encoding/json"
-	entities "internal/entities"
-	repository "internal/repository"
+	services "internal/services"
 	"net/http"
 	"strconv"
 )
 
 type UserController struct {
-	userRepo repository.User
+	userRepo services.UserService
+}
+
+type GetUserResponce struct {
+	Id       int    `json:"id"`
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 func (c *UserController) GetUserByID(w http.ResponseWriter, r *http.Request) {
@@ -34,15 +40,13 @@ func (c *UserController) GetUserByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
-	var user entities.User
-	err := json.NewDecoder(r.Body).Decode(&user)
-	if err != nil {
+	var user GetUserResponce
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err = c.userRepo.Create(&user)
-	if err != nil {
+	if err := c.userRepo.Create(&user); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -51,15 +55,13 @@ func (c *UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *UserController) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	var user entities.User
-	err := json.NewDecoder(r.Body).Decode(&user)
-	if err != nil {
+	var user GetUserResponce
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err = c.userRepo.Update(&user)
-	if err != nil {
+	if err := c.userRepo.Update(&user); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -74,8 +76,7 @@ func (c *UserController) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = c.userRepo.Delete(id)
-	if err != nil {
+	if err := c.userRepo.Delete(id); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
