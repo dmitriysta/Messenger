@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap"
 	"log"
 	"net/http"
+	os "os"
 )
 
 const (
@@ -17,6 +18,25 @@ const (
 	dbname   = "messenger"
 )
 
+func dbConnection() {
+	os.Setenv("host", "localhost")
+	os.Setenv("port", "5432")
+	os.Setenv("user", "admin")
+	os.Setenv("password", "qwerty123456")
+	os.Setenv("dbname", "messenger")
+
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", os.Getenv("host"), os.Getenv("port"), os.Getenv("user"), os.Getenv("password"), os.Getenv("dbname"))
+	db, err := sql.Open("postgres", psqlInfo)
+	if err != nil {
+		logger.Fatal("Failed to open database connection: %v", zap.Error(err))
+	}
+	defer db.Close()
+
+	if err = db.Ping(); err != nil {
+		logger.Fatal("failed to ping database", zap.Error(err))
+	}
+}
+
 func main() {
 	logger, err := zap.NewProduction()
 	if err != nil {
@@ -24,17 +44,7 @@ func main() {
 	}
 	defer logger.Sync()
 
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
-	db, err := sql.Open("postgres", psqlInfo)
-	if err != nil {
-		logger.Fatal("Failed to open database connection: %v", zap.Error(err))
-	}
-	defer db.Close()
-
-	err = db.Ping()
-	if err != nil {
-		logger.Fatal("failed to ping database", zap.Error(err))
-	}
+	dbConnection()
 
 	r := mux.NewRouter()
 	userController := NewUserController(logger)
